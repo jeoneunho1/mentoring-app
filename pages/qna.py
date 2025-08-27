@@ -1,63 +1,73 @@
 import streamlit as st
 
-# 세션 상태 기본값 초기화
-if "user" not in st.session_state:
-    st.session_state["user"] = None
-if "users" not in st.session_state:
-    st.session_state["users"] = {}
-if "questions" not in st.session_state:
-    st.session_state["questions"] = []
-
 st.title("💬 Q&A 게시판")
 
-# 로그인 여부 확인
+# ---------------------------
+# 세션 상태 기본값
+# ---------------------------
+if "questions" not in st.session_state:
+    st.session_state["questions"] = []  # 질문 목록
+if "user" not in st.session_state:
+    st.session_state["user"] = None     # 로그인된 사용자
+
+# ---------------------------
+# 로그인 확인
+# ---------------------------
 if st.session_state["user"] is None:
-    st.warning("로그인 후 이용 가능합니다.")
-    st.stop()
-
-username = st.session_state["user"]
+    st.warning("👉 질문을 등록하려면 먼저 로그인해주세요.")
+else:
+    # ---------------------------
+    # 질문 등록
+    # ---------------------------
+    st.subheader("✍️ 질문하기")
+    q = st.text_area("질문 내용")
+    if st.button("질문 등록"):
+        if q.strip():
+            st.session_state.questions.append({
+                "user": st.session_state["user"],
+                "q": q,
+                "a": None
+            })
+            st.success("질문이 등록되었습니다!")
+        else:
+            st.error("질문 내용을 입력해주세요.")
 
 # ---------------------------
-# 질문 등록
+# 질문 목록 & 답변/삭제
 # ---------------------------
-st.subheader("✏️ 질문하기")
-q = st.text_area("궁금한 점을 입력하세요")
-if st.button("질문 등록"):
-    if q.strip():
-        st.session_state["questions"].append({"user": username, "q": q, "a": None})
-        st.success("질문이 등록되었습니다!")
-    else:
-        st.error("질문 내용을 입력하세요.")
+st.subheader("📋 등록된 질문들")
 
-st.write("---")
-
-# ---------------------------
-# 질문 목록 & 답변
-# ---------------------------
-st.subheader("📋 질문 목록")
-
-if len(st.session_state["questions"]) == 0:
+if not st.session_state.questions:
     st.info("아직 등록된 질문이 없습니다.")
 else:
-    for i, q in enumerate(st.session_state["questions"]):
-        st.markdown(f"**Q{i+1}. {q['user']}의 질문:** {q['q']}")
+    for idx, item in enumerate(st.session_state.questions):
+        with st.container():
+            st.markdown(f"**Q{idx+1}. {item['q']}**  (작성자: `{item['user']}`)")
 
-        # 답변 (멘토만 가능)
-        if q["a"] is None:
-            if username in st.session_state["users"] and \
-               st.session_state["users"][username]["role"] == "mentor":
-                a = st.text_input(f"답변 입력 (Q{i+1})", key=f"a{i}")
-                if st.button(f"답변 달기 (Q{i+1})"):
-                    st.session_state["questions"][i]["a"] = a
-                    st.success("답변이 등록되었습니다!")
-        else:
-            st.markdown(f"👉 **답변:** {q['a']}")
+            # 답변이 달렸으면 보여주기
+            if item["a"]:
+                st.success(f"👉 답변: {item['a']}")
 
-        # 본인 질문 삭제
-        if q["user"] == username:
-            if st.button(f"❌ 질문 삭제 (Q{i+1})"):
-                st.session_state["questions"].pop(i)
-                st.success("질문이 삭제되었습니다!")
-                st.rerun()
+            # ---------------------------
+            # 로그인한 경우에만 답변/삭제 버튼
+            # ---------------------------
+            if st.session_state["user"]:
+                col1, col2 = st.columns(2)
 
-        st.write("---")
+                # 답변 버튼 (멘토/누구든 가능하게)
+                with col1:
+                    answer = st.text_input(f"답변 입력 (Q{idx+1})", key=f"answer_{idx}")
+                    if st.button(f"답변 등록 (Q{idx+1})"):
+                        if answer.strip():
+                            st.session_state.questions[idx]["a"] = answer
+                            st.success("답변이 등록되었습니다!")
+                            st.rerun()
+
+                # 삭제 버튼 (작성자만 삭제 가능)
+                with col2:
+                    if st.session_state["user"] == item["user"]:
+                        if st.button(f"질문 삭제 (Q{idx+1})"):
+                            st.session_state.questions.pop(idx)
+                            st.warning("질문이 삭제되었습니다.")
+                            st.rerun()
+            st.markdown("---")
