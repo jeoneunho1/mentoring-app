@@ -2,14 +2,13 @@ import streamlit as st
 
 st.title("💬 Q&A 게시판")
 
-# 세션 상태 초기화
-if "questions" not in st.session_state:
-    st.session_state.questions = []
-
+# ✅ 세션 상태 초기화 (항상 존재하도록 보장)
 if "user" not in st.session_state:
     st.session_state.user = None
 if "role" not in st.session_state:
     st.session_state.role = None
+if "questions" not in st.session_state:
+    st.session_state.questions = []
 
 # 로그인 확인
 if st.session_state.user is None:
@@ -55,4 +54,4 @@ else:
                 if st.button(f"삭제하기 (Q{i+1})", key=f"del_{i}"):
                     st.session_state.questions.pop(i)
                     st.warning("질문이 삭제되었습니다!")
-                    st.experimental_rerun()
+                    st.rerun()
