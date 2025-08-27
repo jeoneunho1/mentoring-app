@@ -5,23 +5,23 @@ import os
 # 사용자 데이터 파일
 USER_FILE = "users.json"
 
-# 파일이 없으면 새로 생성
+# 파일 없으면 생성
 if not os.path.exists(USER_FILE):
     with open(USER_FILE, "w") as f:
         json.dump({}, f)
 
-# 사용자 불러오기 (에러 대비)
+# 사용자 불러오기
 def load_users():
     try:
         with open(USER_FILE, "r") as f:
             data = f.read().strip()
-            if not data:   # 파일이 비어있으면
+            if not data:
                 return {}
             return json.loads(data)
     except json.JSONDecodeError:
         return {}
 
-# 사용자 저장하기
+# 사용자 저장
 def save_users(users):
     with open(USER_FILE, "w") as f:
         json.dump(users, f)
@@ -46,7 +46,7 @@ if st.session_state.user is None:
             if username in users and users[username]["password"] == password:
                 st.session_state.user = username
                 st.success(f"{username}님 환영합니다!")
-                st.rerun()   # ✅ 최신 방식
+                st.rerun()
             else:
                 st.error("로그인 실패")
 
@@ -71,7 +71,6 @@ else:
     st.sidebar.success(f"👋 {username}님 ({role}) 로그인 중")
     if st.sidebar.button("로그아웃"):
         st.session_state.user = None
-        st.rerun()   # ✅ 최신 방식
+        st.rerun()
 
-    # 페이지 안내
-    st.write("왼쪽 메뉴 `Pages`에서 원하는 기능(질문하기 등)으로 이동하세요.")
+    st.info("왼쪽 사이드바의 **Pages → Q&A** 메뉴로 이동하세요.")
