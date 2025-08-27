@@ -2,7 +2,7 @@ import streamlit as st
 
 st.title("💬 Q&A 게시판")
 
-# ✅ 세션 상태 초기화 (딕셔너리 방식으로만 접근!)
+# ✅ 세션 상태 초기화 (항상 존재 보장)
 if "user" not in st.session_state:
     st.session_state["user"] = None
 if "role" not in st.session_state:
@@ -10,15 +10,9 @@ if "role" not in st.session_state:
 if "questions" not in st.session_state:
     st.session_state["questions"] = []
 
-# ---------------------------
-# 로그인 안 했을 때
-# ---------------------------
+# 로그인 확인
 if st.session_state["user"] is None:
     st.warning("질문/답변 기능을 이용하려면 먼저 로그인 해주세요 🙏")
-
-# ---------------------------
-# 로그인 했을 때
-# ---------------------------
 else:
     # --- 학생: 질문 등록 ---
     if st.session_state["role"] == "student":
@@ -30,7 +24,6 @@ else:
                     {"user": st.session_state["user"], "q": q, "a": None}
                 )
                 st.success("질문이 등록되었습니다!")
-                st.rerun()  # 새로고침해서 입력창 초기화
             else:
                 st.error("내용을 입력해주세요.")
 
@@ -48,7 +41,6 @@ else:
                 if st.button(f"답변 달기 (Q{i+1})", key=f"ans_btn_{i}"):
                     st.session_state["questions"][i]["a"] = a
                     st.success("답변이 등록되었습니다!")
-                    st.rerun()
 
             # 답변 보여주기
             if q["a"] is not None:
