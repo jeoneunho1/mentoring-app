@@ -1,5 +1,13 @@
 import streamlit as st
 
+# 세션 상태 초기화
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "users" not in st.session_state:
+    st.session_state.users = {}
+if "questions" not in st.session_state:
+    st.session_state.questions = []
+
 st.title("💬 질문 & 답변")
 
 if "questions" not in st.session_state:
