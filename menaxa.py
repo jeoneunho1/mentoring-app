@@ -1,13 +1,12 @@
 import streamlit as st
 
-# 간단한 유저 정보 (실제로는 DB 연결 추천)
 users = {"student": "1234", "mentor": "abcd"}
 questions = []
 
 if "user" not in st.session_state:
     st.session_state.user = None
 
-st.title("🎓 멘토링 플랫폼")
+st.title("🎓 멘토링 플랫폼 (Streamlit)")
 
 if st.session_state.user is None:
     st.subheader("로그인")
