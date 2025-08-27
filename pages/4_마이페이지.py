@@ -63,25 +63,26 @@ if user_role == "student":
                         if already_reviewed:
                             st.info("이미 리뷰를 작성했습니다. 감사합니다!")
                         else:
-                            # --- ⭐⭐⭐ 별점 UI 변경 부분 ⭐⭐⭐ ---
+                            # --- ⭐⭐⭐ 오류 수정 부분 ⭐⭐⭐ ---
+                            
+                            # 1. 별점 선택 UI를 form 바깥으로 이동
+                            st.write("**별점을 선택해주세요**")
+                            star_rating_key = f"rating_{mentor_id}"
+                            if star_rating_key not in st.session_state:
+                                st.session_state[star_rating_key] = 5
+
+                            cols = st.columns(5)
+                            for i in range(5):
+                                with cols[i]:
+                                    if st.button("⭐", key=f"star_{mentor_id}_{i+1}", use_container_width=True):
+                                        st.session_state[star_rating_key] = i + 1
+                            
+                            selected_rating = st.session_state[star_rating_key]
+                            stars_display = "⭐" * selected_rating + "☆" * (5 - selected_rating)
+                            st.write(f"선택: {stars_display} ({selected_rating}점)")
+
+                            # 2. form 안에는 '한 줄 평'과 '제출 버튼'만 남김
                             with st.form(f"review_form_{mentor_id}"):
-                                # st.session_state를 이용해 현재 선택된 별점 임시 저장
-                                star_rating_key = f"rating_{mentor_id}"
-                                if star_rating_key not in st.session_state:
-                                    st.session_state[star_rating_key] = 5 # 기본값 5점
-
-                                st.write("**별점을 선택해주세요**")
-                                cols = st.columns(5)
-                                for i in range(5):
-                                    with cols[i]:
-                                        if st.button("⭐", key=f"star_{mentor_id}_{i+1}", use_container_width=True):
-                                            st.session_state[star_rating_key] = i + 1
-                                
-                                # 선택된 별점에 따라 색칠된 별 표시
-                                selected_rating = st.session_state[star_rating_key]
-                                stars_display = "⭐" * selected_rating + "☆" * (5 - selected_rating)
-                                st.write(f"선택: {stars_display} ({selected_rating}점)")
-
                                 comment = st.text_area("한 줄 평")
                                 submitted = st.form_submit_button("리뷰 제출하기")
 
@@ -91,19 +92,17 @@ if user_role == "student":
                                     else:
                                         new_review = {
                                             "student_id": current_user_id,
-                                            "rating": selected_rating, # 세션에 저장된 별점 사용
+                                            "rating": selected_rating, # 바깥에서 선택된 별점 사용
                                             "comment": comment
                                         }
                                         all_reviews.setdefault(mentor_id, []).append(new_review)
                                         save_data(REVIEWS_FILE, all_reviews)
-                                        del st.session_state[star_rating_key] # 제출 후 임시 별점 삭제
+                                        del st.session_state[star_rating_key]
                                         st.success("소중한 리뷰가 등록되었습니다!")
                                         st.rerun()
-                                        
+
 # =======================================
-# 멘토 (Mentor) 화면 (이전과 동일)
+# 멘토 (Mentor) 화면 (변경 없음)
 # =======================================
 elif user_role == "mentor":
-    # (코드는 이전과 동일하므로 생략)
-    st.header("📬 내가 받은 멘토링 신청")
     # ... (이전과 동일한 멘토 화면 코드)
