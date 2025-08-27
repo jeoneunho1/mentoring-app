@@ -46,7 +46,7 @@ if st.session_state.user is None:
             if username in users and users[username]["password"] == password:
                 st.session_state.user = username
                 st.success(f"{username}님 환영합니다!")
-                st.experimental_rerun()
+                st.rerun()   # ✅ 최신 방식
             else:
                 st.error("로그인 실패")
 
@@ -71,7 +71,7 @@ else:
     st.sidebar.success(f"👋 {username}님 ({role}) 로그인 중")
     if st.sidebar.button("로그아웃"):
         st.session_state.user = None
-        st.experimental_rerun()
+        st.rerun()   # ✅ 최신 방식
 
     # 페이지 안내
     st.write("왼쪽 메뉴 `Pages`에서 원하는 기능(질문하기 등)으로 이동하세요.")
