@@ -1,14 +1,14 @@
 import streamlit as st
 
-st.title("💬 Q&A 게시판")
-
-# ✅ 세션 상태 초기화 (항상 존재하도록 보장)
+# ✅ 세션 상태 초기화 (맨 위에서 보장!)
 if "user" not in st.session_state:
     st.session_state.user = None
 if "role" not in st.session_state:
     st.session_state.role = None
 if "questions" not in st.session_state:
     st.session_state.questions = []
+
+st.title("💬 Q&A 게시판")
 
 # 로그인 확인
 if st.session_state.user is None:
