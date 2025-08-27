@@ -22,7 +22,6 @@ def save_data(filepath, data):
 st.set_page_config(layout="wide")
 st.title("💬 1:1 채팅")
 
-# --- 로그인 및 채팅 상대방 확인 ---
 if "user" not in st.session_state or st.session_state["user"] is None:
     st.warning("채팅 기능을 이용하려면 먼저 로그인해주세요.")
     st.stop()
@@ -38,14 +37,17 @@ partner_name = all_users.get(partner_id, {}).get("profile", {}).get("name", part
 
 st.header(f"'{partner_name}'님과의 대화")
 
-# --- 채팅방 ID 생성 ---
-# (ID 순서를 보장하여 항상 동일한 채팅방 ID가 생성되도록 함)
 chat_room_id = "_".join(sorted([current_user_id, partner_id]))
-
-# --- 채팅 기록 로드 및 초기화 ---
 all_chats = load_data(CHATS_FILE)
 if chat_room_id not in all_chats:
     all_chats[chat_room_id] = []
+
+# --- ⭐ 2. 채팅방 입장 시 '안 읽은 메시지' 초기화 ---
+# 현재 유저의 알림 정보에서, 현재 채팅 상대방이 보낸 메시지 카운트를 0으로 만듦
+current_user_notifications = all_users.setdefault(current_user_id, {}).setdefault("notifications", {})
+unread_chats = current_user_notifications.setdefault("unread_chats", {})
+unread_chats[f"from_{partner_id}"] = 0
+save_data(USERS_FILE, all_users) # 변경사항 저장
 
 # --- 채팅 화면 UI 구성 ---
 chat_history = all_chats[chat_room_id]
@@ -59,11 +61,17 @@ with st.form("chat_form", clear_on_submit=True):
     submitted = st.form_submit_button("전송")
 
 if submitted and user_input:
-    # 1. 새 메시지 객체 생성
     new_message = {"sender": current_user_id, "message": user_input}
-    # 2. 채팅 기록에 추가
     all_chats[chat_room_id].append(new_message)
-    # 3. 파일에 저장
     save_data(CHATS_FILE, all_chats)
-    # 4. 페이지 새로고침하여 즉시 반영
+    
+    # --- ⭐ 1. 메시지 전송 시 상대방의 '안 읽은 메시지' 카운트 증가 ---
+    partner_notifications = all_users.setdefault(partner_id, {}).setdefault("notifications", {})
+    partner_unread_chats = partner_notifications.setdefault("unread_chats", {})
+    
+    # 상대방의 알림 목록에서 'from_{나}'의 카운트를 1 증가
+    count_key = f"from_{current_user_id}"
+    partner_unread_chats[count_key] = partner_unread_chats.get(count_key, 0) + 1
+    save_data(USERS_FILE, all_users)
+
     st.rerun()
