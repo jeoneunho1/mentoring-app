@@ -1,16 +1,25 @@
 import streamlit as st
-import json, os
+import json
+import os
 
 # 사용자 데이터 파일
 USER_FILE = "users.json"
+
+# 파일이 없으면 새로 생성
 if not os.path.exists(USER_FILE):
     with open(USER_FILE, "w") as f:
         json.dump({}, f)
 
-# 사용자 불러오기
+# 사용자 불러오기 (에러 대비)
 def load_users():
-    with open(USER_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(USER_FILE, "r") as f:
+            data = f.read().strip()
+            if not data:   # 파일이 비어있으면
+                return {}
+            return json.loads(data)
+    except json.JSONDecodeError:
+        return {}
 
 # 사용자 저장하기
 def save_users(users):
