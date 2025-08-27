@@ -25,6 +25,8 @@ def save_users(users):
 # ---------------------------
 if "user" not in st.session_state:
     st.session_state["user"] = None
+if "role" not in st.session_state:   # ✅ 역할도 세션에 저장
+    st.session_state["role"] = None
 if "users" not in st.session_state:
     st.session_state["users"] = load_users()
 
@@ -47,8 +49,9 @@ if menu == "로그인":
     if st.button("로그인"):
         users = st.session_state["users"]
         if username in users and users[username]["password"] == password:
-            st.session_state["user"] = username   # ✅ 세션에 로그인 정보 저장
-            st.success(f"{username}님, 환영합니다!")
+            st.session_state["user"] = username
+            st.session_state["role"] = users[username]["role"]   # ✅ 역할 저장
+            st.success(f"{username}님, 환영합니다! (역할: {st.session_state['role']})")
             st.rerun()
         else:
             st.error("아이디 또는 비밀번호가 올바르지 않습니다.")
@@ -82,6 +85,7 @@ elif menu == "로그아웃":
     if st.session_state["user"] is not None:
         st.success(f"{st.session_state['user']}님이 로그아웃 되었습니다.")
         st.session_state["user"] = None
+        st.session_state["role"] = None   # ✅ 로그아웃 시 역할도 초기화
         st.rerun()
     else:
         st.info("현재 로그인된 유저가 없습니다.")
