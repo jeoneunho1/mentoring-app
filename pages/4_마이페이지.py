@@ -4,16 +4,17 @@ import os
 
 # --- 유틸리티 함수 ---
 USER_FILE = "users.json"
+REVIEWS_FILE = "reviews.json" # 리뷰 파일 경로 추가
 
-def load_users():
-    if not os.path.exists(USER_FILE): return {}
-    with open(USER_FILE, "r", encoding="utf-8") as f:
+def load_data(filepath):
+    if not os.path.exists(filepath): return {}
+    with open(filepath, "r", encoding="utf-8") as f:
         try: return json.load(f)
         except json.JSONDecodeError: return {}
 
-def save_users(users):
-    with open(USER_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=4)
+def save_data(filepath, data):
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 # -----------------------
 
 st.set_page_config(layout="wide")
@@ -24,7 +25,8 @@ if "user" not in st.session_state or st.session_state["user"] is None:
     st.stop()
 
 current_user_id = st.session_state["user"]
-all_users = load_users()
+all_users = load_data(USER_FILE)
+all_reviews = load_data(REVIEWS_FILE) # 리뷰 데이터 로드
 user_data = all_users.get(current_user_id, {})
 user_role = user_data.get("role")
 mentoring_info = user_data.get("mentoring_info", {})
@@ -47,19 +49,48 @@ if user_role == "student":
             with st.container(border=True):
                 st.subheader(f"To. {mentor_name} 멘토")
                 st.write(f"신청 상태: **{status_emoji.get(status, status)}**")
-                
-                # --- 채팅방 입장 버튼 추가 ---
+
                 if status == 'accepted':
                     st.success("멘토링이 수락되었습니다!")
+                    # 1. 채팅방 입장 버튼
                     if st.button(f"💬 {mentor_name} 멘토와 대화하기", key=f"chat_{mentor_id}"):
-                        # 채팅 상대방 ID를 세션에 저장하고 채팅 페이지로 이동
                         st.session_state['chat_partner'] = mentor_id
                         st.switch_page("pages/5_채팅.py")
+
+                    # --- 2. 리뷰 작성 폼 추가 ---
+                    with st.expander("⭐ 멘토링 리뷰 남기기"):
+                        # 이미 이 멘토에게 리뷰를 남겼는지 확인
+                        mentor_reviews = all_reviews.get(mentor_id, [])
+                        already_reviewed = any(r['student_id'] == current_user_id for r in mentor_reviews)
+
+                        if already_reviewed:
+                            st.info("이미 리뷰를 작성했습니다. 감사합니다!")
+                        else:
+                            with st.form(f"review_form_{mentor_id}"):
+                                rating = st.slider("별점", 1, 5, 5)
+                                comment = st.text_area("한 줄 평")
+                                submitted = st.form_submit_button("리뷰 제출하기")
+
+                                if submitted:
+                                    if not comment.strip():
+                                        st.error("리뷰 내용을 입력해주세요.")
+                                    else:
+                                        new_review = {
+                                            "student_id": current_user_id,
+                                            "rating": rating,
+                                            "comment": comment
+                                        }
+                                        # 멘토 ID를 키로 하여 리뷰 저장
+                                        all_reviews.setdefault(mentor_id, []).append(new_review)
+                                        save_data(REVIEWS_FILE, all_reviews)
+                                        st.success("소중한 리뷰가 등록되었습니다!")
+                                        st.rerun()
 
 # =======================================
 # 멘토 (Mentor) 화면
 # =======================================
 elif user_role == "mentor":
+    # 멘토 화면은 이전과 동일 (변경 없음)
     st.header("📬 내가 받은 멘토링 신청")
     received_requests = mentoring_info.get("received_requests", [])
     pending_requests = [req for req in received_requests if req['status'] == 'pending']
@@ -68,11 +99,9 @@ elif user_role == "mentor":
     if not received_requests:
         st.info("아직 받은 멘토링 신청이 없습니다.")
 
-    # --- 대기중인 신청 처리 ---
     if pending_requests:
         st.subheader("대기중인 신청")
         for request in pending_requests:
-            # (이전과 동일한 수락/거절 코드)
             student_id = request["student_id"]
             student_name = all_users.get(student_id, {}).get("profile", {}).get("name", student_id)
             with st.container(border=True):
@@ -82,18 +111,17 @@ elif user_role == "mentor":
                     request['status'] = 'accepted'
                     for s_req in all_users.get(student_id, {}).get("mentoring_info", {}).get("sent_requests", []):
                         if s_req['mentor_id'] == current_user_id: s_req['status'] = 'accepted'
-                    save_users(all_users)
+                    save_data(USER_FILE, all_users)
                     st.success(f"{student_name} 학생의 멘토링을 수락했습니다.")
                     st.rerun()
                 if col2.button("❌ 거절하기", key=f"reject_{student_id}", use_container_width=True):
                     request['status'] = 'rejected'
                     for s_req in all_users.get(student_id, {}).get("mentoring_info", {}).get("sent_requests", []):
                         if s_req['mentor_id'] == current_user_id: s_req['status'] = 'rejected'
-                    save_users(all_users)
+                    save_data(USER_FILE, all_users)
                     st.warning(f"{student_name} 학생의 멘토링을 거절했습니다.")
                     st.rerun()
 
-    # --- 수락된 멘티 목록 및 채팅방 입장 ---
     if accepted_requests:
         st.markdown("---")
         st.subheader("나의 멘티 목록")
