@@ -1,5 +1,7 @@
+# --- 자동 새로고침 기능이 추가된 최종 코드 ---
 import streamlit as st
 from streamlit_chat import message
+from streamlit_autorefresh import st_autorefresh # --- ⭐ 1. 이 줄 추가 ⭐ ---
 import json
 import os
 
@@ -20,7 +22,12 @@ def save_data(filepath, data):
 # -----------------------
 
 st.set_page_config(layout="wide")
+
+# --- ⭐ 2. 이 줄 추가 ⭐ ---
+st_autorefresh(interval=2000, limit=None, key="chat_autorefresh")
+
 st.title("💬 1:1 채팅")
+st.caption("이 페이지는 2초마다 자동으로 업데이트됩니다.")
 
 if "user" not in st.session_state or st.session_state["user"] is None:
     st.warning("채팅 기능을 이용하려면 먼저 로그인해주세요.")
@@ -42,12 +49,11 @@ all_chats = load_data(CHATS_FILE)
 if chat_room_id not in all_chats:
     all_chats[chat_room_id] = []
 
-# --- ⭐ 2. 채팅방 입장 시 '안 읽은 메시지' 초기화 ---
-# 현재 유저의 알림 정보에서, 현재 채팅 상대방이 보낸 메시지 카운트를 0으로 만듦
+# --- 채팅방 입장 시 '안 읽은 메시지' 초기화 ---
 current_user_notifications = all_users.setdefault(current_user_id, {}).setdefault("notifications", {})
 unread_chats = current_user_notifications.setdefault("unread_chats", {})
 unread_chats[f"from_{partner_id}"] = 0
-save_data(USERS_FILE, all_users) # 변경사항 저장
+save_data(USERS_FILE, all_users)
 
 # --- 채팅 화면 UI 구성 ---
 chat_history = all_chats[chat_room_id]
@@ -65,11 +71,10 @@ if submitted and user_input:
     all_chats[chat_room_id].append(new_message)
     save_data(CHATS_FILE, all_chats)
     
-    # --- ⭐ 1. 메시지 전송 시 상대방의 '안 읽은 메시지' 카운트 증가 ---
+    # --- 메시지 전송 시 상대방의 '안 읽은 메시지' 카운트 증가 ---
     partner_notifications = all_users.setdefault(partner_id, {}).setdefault("notifications", {})
     partner_unread_chats = partner_notifications.setdefault("unread_chats", {})
     
-    # 상대방의 알림 목록에서 'from_{나}'의 카운트를 1 증가
     count_key = f"from_{current_user_id}"
     partner_unread_chats[count_key] = partner_unread_chats.get(count_key, 0) + 1
     save_data(USERS_FILE, all_users)
