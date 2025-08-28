@@ -2,7 +2,9 @@ import streamlit as st
 import json
 import os
 
+# --- 유틸리티 함수 (기존과 동일) ---
 USER_FILE = "users.json"
+REVIEWS_FILE = "reviews.json"
 QUESTIONS_FILE = "questions.json"
 
 def load_data(filepath):
@@ -14,6 +16,7 @@ def load_data(filepath):
 def save_data(filepath, data):
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+# -----------------------
 
 st.set_page_config(layout="wide")
 st.title("📊 대시보드")
@@ -22,14 +25,20 @@ if "user" not in st.session_state or st.session_state["user"] is None:
     st.warning("대시보드를 보려면 먼저 로그인해주세요.")
     st.stop()
 
+# --- 데이터 로드 ---
 current_user_id = st.session_state["user"]
 all_users = load_data(USER_FILE)
 all_questions = load_data(QUESTIONS_FILE)
 user_data = all_users.get(current_user_id, {})
 user_role = user_data.get("role")
+mentoring_info = user_data.get("mentoring_info", {})
 
+# =======================================
+# 학생 (Student) 화면 (기존과 동일)
+# =======================================
 if user_role == "student":
     col1, col2 = st.columns(2)
+    # 왼쪽 컬럼: 알림 및 멘토 목록
     with col1:
         with st.container(border=True):
             st.subheader("📬 새 메시지 알림")
@@ -40,6 +49,21 @@ if user_role == "student":
                 st.metric(label="읽지 않은 총 메시지", value=f"{total_unread}개")
             else:
                 st.success("모든 메시지를 확인했습니다!")
+
+        st.markdown("---")
+        with st.container(border=True):
+            st.subheader("👨‍🏫 나의 멘토")
+            my_mentors = [req for req in mentoring_info.get("sent_requests", []) if req['status'] == 'accepted']
+            if not my_mentors:
+                st.write("아직 매칭된 멘토가 없습니다.")
+            for req in my_mentors:
+                mentor_id = req["mentor_id"]
+                mentor_name = all_users.get(mentor_id, {}).get("profile", {}).get("name", mentor_id)
+                if st.button(f"💬 {mentor_name} 멘토와 대화하기", key=f"dash_chat_{mentor_id}", use_container_width=True):
+                    st.session_state['chat_partner'] = mentor_id
+                    st.switch_page("pages/5_채팅.py")
+
+    # 오른쪽 컬럼: 최근 활동
     with col2:
         with st.container(border=True):
             st.subheader("📝 최근 활동 (Q&A)")
@@ -49,10 +73,16 @@ if user_role == "student":
             else:
                 st.write("내가 최근에 남긴 질문:")
                 for q in my_questions[:3]:
-                    st.markdown(f"**Q.** {q['q']} ({'✅ 답변 완료' if q.get('a') else '⏳ 답변 대기중'})")
+                    status_text = "✅ 답변 완료" if q.get('a') else "⏳ 답변 대기중"
+                    st.markdown(f"**Q.** {q['q']} ({status_text})")
 
+# =======================================
+# 멘토 (Mentor) 화면 (수정된 부분)
+# =======================================
 elif user_role == "mentor":
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 1])
+
+    # --- 왼쪽 컬럼: 알림 및 멘티 목록 ---
     with col1:
         with st.container(border=True):
             st.subheader("🔔 새 알림")
@@ -62,17 +92,43 @@ elif user_role == "mentor":
                 st.metric(label="새로운 멘토링 신청", value=f"{unread_requests_count}건")
             else:
                 st.success("새로운 멘토링 신청이 없습니다.")
+        
+        st.markdown("---")
+        
+        # --- ⭐ '나의 멘티' 목록 표시 로직 추가 ⭐ ---
+        with st.container(border=True):
+            st.subheader("🧑‍🎓 나의 멘티 목록")
+            my_mentees = [req for req in mentoring_info.get("received_requests", []) if req['status'] == 'accepted']
+            
+            if not my_mentees:
+                st.info("아직 수락한 멘티가 없습니다.")
+            else:
+                for req in my_mentees:
+                    student_id = req["student_id"]
+                    student_name = all_users.get(student_id, {}).get("profile", {}).get("name", student_id)
+                    # 각 멘티 카드 생성
+                    with st.container(border=True):
+                        st.write(f"**이름**: {student_name} (@{student_id})")
+                        if st.button(f"💬 {student_name} 멘티와 대화하기", key=f"dash_chat_{student_id}", use_container_width=True):
+                            st.session_state['chat_partner'] = student_id
+                            st.switch_page("pages/5_채팅.py")
+
+    # --- 오른쪽 컬럼: 멘토링 신청 관리 ---
     with col2:
         with st.container(border=True):
             st.subheader("📬 대기중인 신청")
+            
+            # '읽음' 처리 로직
             if user_data.get("notifications", {}).get("unread_requests", 0) > 0:
                 user_data["notifications"]["unread_requests"] = 0
                 save_data(USER_FILE, all_users)
-                st.rerun()
+                st.rerun() # '읽음' 처리 후 바로 새로고침하여 metric 업데이트
             
-            pending_requests = [req for req in user_data.get("mentoring_info", {}).get("received_requests", []) if req['status'] == 'pending']
+            pending_requests = [req for req in mentoring_info.get("received_requests", []) if req['status'] == 'pending']
+            
             if not pending_requests:
                 st.info("처리할 멘토링 신청이 없습니다.")
+            
             for request in pending_requests:
                 student_id = request["student_id"]
                 student_name = all_users.get(student_id, {}).get("profile", {}).get("name", student_id)
