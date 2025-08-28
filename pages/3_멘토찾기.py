@@ -19,7 +19,6 @@ def save_data(filepath, data):
 
 st.set_page_config(layout="wide")
 
-# --- ⭐ 1. st.session_state를 이용해 선택된 태그 저장 ---
 if 'selected_tag' not in st.session_state:
     st.session_state['selected_tag'] = None
 
@@ -33,14 +32,13 @@ is_logged_in = "user" in st.session_state and st.session_state["user"] is not No
 current_user_id = st.session_state["user"] if is_logged_in else None
 current_user_role = st.session_state.get("role") if is_logged_in else None
 
-# --- ⭐ 2. 전체 태그 목록 수집 및 필터링 UI ---
+# --- 전체 태그 목록 수집 및 필터링 UI ---
 all_mentor_tags = set()
 for data in mentors.values():
     tags = data.get("profile", {}).get("specialty", [])
     if isinstance(tags, list):
         all_mentor_tags.update(tags)
 
-# 태그 필터 버튼들을 가로로 나열
 cols = st.columns(len(all_mentor_tags) + 1)
 with cols[0]:
     if st.button("전체 보기", use_container_width=True):
@@ -56,7 +54,7 @@ for tag in sorted(list(all_mentor_tags)):
     i += 1
 st.markdown("---")
 
-# --- ⭐ 3. 선택된 태그에 따라 멘토 목록 필터링 ---
+# --- 선택된 태그에 따라 멘토 목록 필터링 ---
 filtered_mentors = {}
 selected_tag = st.session_state['selected_tag']
 
@@ -73,7 +71,6 @@ else:
 if not filtered_mentors:
     st.warning("아직 해당 분야의 멘토가 없습니다.")
 else:
-    # --- 멘토 목록 표시 (카드 UI는 이전과 거의 동일) ---
     cols = st.columns(3)
     i = 0
     for mentor_id, data in filtered_mentors.items():
@@ -92,7 +89,6 @@ else:
                 else:
                     st.write("**평점**: 아직 없음")
                 
-                # --- ⭐ 4. 멘토 카드에 태그 표시 ---
                 tags = profile.get("specialty", [])
                 if tags:
                     st.write("**전문 분야**: " + " ".join(f"`{t}`" for t in tags))
@@ -100,14 +96,28 @@ else:
                 st.write(profile.get('intro', '자기소개 없음'))
                 st.markdown("---")
                 
-                # (멘토링 신청 버튼 로직은 이전과 동일)
+                # --- 멘토링 신청 버튼 로직 ---
                 if current_user_role == "student":
-                    sent_requests = all_users.get(current_user_id, {}).get("mentoring_info", {}).get("sent_requests", [])
+                    student_info = all_users.get(current_user_id, {})
+                    sent_requests = student_info.get("mentoring_info", {}).get("sent_requests", [])
                     already_requested = any(req['mentor_id'] == mentor_id for req in sent_requests)
+                    
                     if already_requested:
                         st.success("✅ 신청 완료")
                     else:
                         if st.button(f"멘토링 신청하기", key=f"req_{mentor_id}"):
-                            # ... (신청 로직)
+                            # --- 👇 진단 코드 ---
+                            st.write("버튼 클릭됨!") 
+                            # --- 👆 진단 코드 ---
+
+                            student_info.setdefault("mentoring_info", {}).setdefault("sent_requests", []).append(
+                                {"mentor_id": mentor_id, "status": "pending"}
+                            )
+                            mentor_info = all_users.get(mentor_id, {})
+                            mentor_info.setdefault("mentoring_info", {}).setdefault("received_requests", []).append(
+                                {"student_id": current_user_id, "status": "pending"}
+                            )
+                            save_data(USER_FILE, all_users)
+                            st.success("멘토링 신청을 보냈습니다! '마이페이지'에서 확인하세요.")
                             st.rerun()
         i += 1
