@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh # --- ⭐ 1. 이 줄 추가 ⭐ ---
 import json
 import os
 
@@ -21,10 +22,14 @@ def save_questions(questions):
 if "questions" not in st.session_state:
     st.session_state["questions"] = load_questions()
 
+# --- ⭐ 2. 이 줄 추가 (5초마다 새로고침) ⭐ ---
+st_autorefresh(interval=3000, limit=None, key="qna_autorefresh")
+
 st.title("💬 Q&A 게시판")
+st.caption("이 페이지는 3초마다 자동으로 업데이트됩니다.")
 
 if 'selected_question' in st.session_state:
-    selected_q_text = st.session_state.pop('selected_question') # pop으로 가져오고 바로 삭제
+    selected_q_text = st.session_state.pop('selected_question')
     selected_q_item = next((q for q in st.session_state["questions"] if q['q'] == selected_q_text), None)
     
     if selected_q_item:
