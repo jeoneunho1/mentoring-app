@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh # --- ⭐ 1. 이 줄 추가 ⭐ ---
+from streamlit_autorefresh import st_autorefresh
 import json
 import os
 
@@ -19,10 +19,13 @@ def save_questions(questions):
     with open(QUESTIONS_FILE, "w", encoding="utf-8") as f:
         json.dump(questions, f, ensure_ascii=False, indent=4)
 
-if "questions" not in st.session_state:
-    st.session_state["questions"] = load_questions()
+# --- ⭐ 이 부분을 수정합니다! ⭐ ---
+# if "questions" not in st.session_state:
+#     st.session_state["questions"] = load_questions()
+# 위 코드를 아래 한 줄로 교체합니다.
+st.session_state["questions"] = load_questions()
+# --- ⭐ 코드 수정 끝 ⭐ ---
 
-# --- ⭐ 2. 이 줄 추가 (5초마다 새로고침) ⭐ ---
 st_autorefresh(interval=3000, limit=None, key="qna_autorefresh")
 
 st.title("💬 Q&A 게시판")
@@ -43,6 +46,7 @@ if 'selected_question' in st.session_state:
                 st.warning("아직 답변이 등록되지 않았습니다.")
         st.markdown("---")
 
+# (이하 코드는 이전과 동일합니다)
 if st.session_state.get("user") is None:
     st.warning("질문/답변 기능을 이용하려면 먼저 로그인 해주세요. 🙏")
 else:
