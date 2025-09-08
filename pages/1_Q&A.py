@@ -1,5 +1,6 @@
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh # --- ⭐ 1. 이 줄 추가 ⭐ ---
+from streamlit_autorefresh
+import st_autorefresh # --- ⭐ 1. 이 줄 추가 ⭐ ---
 import json
 import os
 
